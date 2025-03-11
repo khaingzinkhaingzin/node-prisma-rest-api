@@ -64,3 +64,17 @@ exports.updateCategory = async (req, res) => {
         return res.status(500).json({ error: error.message })
     }
 }
+
+exports.deleteCategory = async (req, res) => {
+    try {
+        if (!await prisma.category.findUnique({ where: { id: parseInt(req.params.id) } })) {
+            return res.status(404).json({ error: 'Category not found' })
+        }
+
+        await prisma.category.delete({ where: { id: parseInt(req.params.id) } })
+
+        return res.status(204).send()
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+}
