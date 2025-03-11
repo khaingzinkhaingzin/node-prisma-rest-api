@@ -51,3 +51,86 @@ exports.getProducts = async (req, res) => {
         return res.status(500).json({ error: error.message })
     }
 }
+
+exports.getProductById = async (req, res) => {
+    try {
+        const product = await prisma.product.findFirst({
+            where: { id: parseInt(req.params.id) },
+            include: { category: true },
+            omit: { categoryId: true }
+        })
+
+        if (!product) {
+            return res.status(404).json({ error: "Product not found" })
+        }
+
+        return res.status(200).json(product);
+
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+}
+
+exports.updateProduct = async (req, res) => {
+    try {
+        if (req.body.name !== undefined && req.body.name.trim() === "") {
+            return res.status(422).json({ error: "Name can not be empty" })
+        }
+
+        if (req.body.price !== undefined && req.body.price < 0) {
+            return res.status(422).json({ error: "Price must be a non negative number" })
+        }
+
+        if (req.body.categoryId !== undefined && !await prisma.category.findUnique({ where: { id: req.body.categoryId } })) {
+            return res.status(404).json({ error: "Category not found" })
+        }
+
+        const updateProduct = await prisma.product.update({
+            data: req.body,
+            where: {
+                id: parseInt(req.params.id)
+            },
+            include: { category: true },
+            omit: { categoryId: true }
+        });
+
+        return res.status(200).json(updateProduct)
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+}
+
+exports.deleteProduct = async (req, res) => {
+    try {
+        if (!await prisma.product.findUnique({ where: { id: parseInt(req.params.id) } })) {
+            return res.status(404).json({ error: 'Product not found' })
+        }
+
+        await prisma.product.delete({ where: { id: parseInt(req.params.id) } })
+
+        return res.status(204).send()
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+}
+
+exports.getProductsByCategoryId = async (req, res) => {
+    try {
+        if (!await prisma.category.findUnique({ where: { id: parseInt(req.params.categoryId) } })) {
+            return res.status(404).json({ error: 'Category id not found' })
+        }
+
+        const products = await prisma.product.findMany({
+            where: {
+                categoryId: parseInt(req.params.categoryId)
+            },
+            include: { category: true },
+            omit: { categoryId: true },
+            orderBy: { name: "asc" }
+        })
+
+        return res.status(200).json(products)
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+}
